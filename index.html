@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>롤링 레이스 뽑기</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <h1>🏃 롤링 레이스 뽑기</h1>
+    <button id="muteBtn" class="icon-btn" title="소리 켜기/끄기">🔊</button>
+  </header>
+
+  <!-- 설정 화면 -->
+  <section id="setup" class="panel">
+    <h2>참가 멤버</h2>
+    <div id="memberList" class="member-list"></div>
+
+    <form id="addForm" class="add-form">
+      <input id="newName" type="text" placeholder="이름" maxlength="12" required />
+      <label class="file-btn">
+        📷 사진
+        <input id="newPhoto" type="file" accept="image/*" hidden />
+      </label>
+      <button type="submit">+ 추가</button>
+    </form>
+
+    <div class="options">
+      <div class="opt">
+        <span>당첨 기준</span>
+        <div class="seg" id="modeSeg">
+          <button type="button" data-v="first" class="on">🥇 1등 당첨</button>
+          <button type="button" data-v="last">🐢 꼴등 당첨</button>
+        </div>
+      </div>
+      <div class="opt">
+        <span>코스 길이</span>
+        <div class="seg" id="lenSeg">
+          <button type="button" data-v="4000">짧게</button>
+          <button type="button" data-v="6500" class="on">보통</button>
+          <button type="button" data-v="10000">길게</button>
+        </div>
+      </div>
+    </div>
+
+    <details class="items-help">
+      <summary>아이템 설명</summary>
+      <ul>
+        <li>🚀 <b>부스터</b> — 잠깐 엄청 빨라짐</li>
+        <li>⚡ <b>번개</b> — 나 빼고 전부 느려짐</li>
+        <li>🍌 <b>바나나</b> — 바로 앞(1등이면 바로 뒤) 사람을 미끄러뜨림</li>
+        <li>🌀 <b>자리 바꾸기</b> — 바로 앞 사람과 위치 교환</li>
+        <li>🍄 <b>거대화</b> — 커지면서 빨라짐, 공격 무시</li>
+        <li>🛡️ <b>방패</b> — 다음 공격 1번 막음</li>
+        <li>💤 <b>졸음</b> — 꽝! 잠깐 멈춤</li>
+      </ul>
+      <p class="hint">뒤처질수록 좋은 아이템이 나올 확률이 올라가요.</p>
+    </details>
+
+    <button id="startBtn" class="start-btn">출발! 🏁</button>
+    <button id="resetBtn" class="link-btn" type="button">기본 멤버로 초기화</button>
+  </section>
+
+  <!-- 레이스 화면 -->
+  <section id="race" class="hidden">
+    <div class="stage">
+      <canvas id="canvas"></canvas>
+      <div id="ticker" class="ticker"></div>
+    </div>
+    <ol id="rankBoard" class="rank-board"></ol>
+  </section>
+
+  <!-- 결과 -->
+  <div id="result" class="overlay hidden">
+    <div class="result-card">
+      <div id="resultLabel" class="result-label">당첨!</div>
+      <img id="resultFace" class="result-face" alt="" />
+      <div id="resultName" class="result-name"></div>
+      <ol id="resultRank" class="result-rank"></ol>
+      <div class="result-btns">
+        <button id="againBtn" class="start-btn">한 판 더! 🔁</button>
+        <button id="backBtn" class="link-btn" type="button">멤버 수정</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="confetti" class="confetti"></canvas>
+
+  <script src="game.js"></script>
+</body>
+</html>
