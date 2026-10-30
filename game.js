@@ -270,6 +270,12 @@
     "역전의 아이콘 🌀", "어제 야식 먹고 옴 🍗", "방패 수집가 🛡️", "졸음 주의보 발령 💤",
     "우승 후보 0순위 👑", "오늘의 다크호스 🐎", "꼴등 탈출을 다짐 🐢", "거대화 꿈나무 🍄",
   ];
+  // 멤버별 고정 소개 문구 (없으면 위 목록에서 무작위)
+  const MEMBER_TAGS = {
+    "김보석": "이름에 '보'가 들어감 👩",
+    "장윤성": "영화관에서 칼 맞을 뻔함 🔪",
+    "이성복": "키가 민우만 함 🤏",
+  };
   const INTRO_TITLE = 1.4; // 타이틀 카드 시간
   const INTRO_PER = 1.35; // 선수 1명당 시간
 
@@ -388,7 +394,7 @@
         paceTimer: 0,
         phase: Math.random() * 10,
         boostT: 0, slowT: 0, stunT: 0, giantT: 0,
-        tag: tags[i % tags.length],
+        tag: MEMBER_TAGS[m.name] || tags[i % tags.length],
         squash: 0, // 찌그러짐 연출 세기 (0이면 원래 모양)
         squashT: 1,
         rank: i,
