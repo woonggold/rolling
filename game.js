@@ -247,12 +247,31 @@
     pass: () => { beep(880, 0.07, "square", 0.05, 0); beep(1175, 0.09, "square", 0.05, 0, 0.06); },
     lead: () => [784, 988, 1175, 1568].forEach((f, i) => beep(f, 0.1, "square", 0.06, 0, i * 0.045)),
     spurt: () => [392, 392, 523].forEach((f, i) => beep(f, i === 2 ? 0.45 : 0.12, "sawtooth", 0.08, 0, i * 0.14, null, false)),
+    intro: () => {
+      noise(0.35, 0.3, 400, 0, null, "bandpass", 4000);
+      beep(880, 0.15, "triangle", 0.1, 0, 0.12, null, false);
+      beep(1320, 0.3, "triangle", 0.08, 0, 0.2, null, false);
+      noise(0.9, 0.06, 1200, 0.1); // 관중 환호
+    },
+    title: () => {
+      [392, 523, 659, 784].forEach((f, i) => beep(f, i === 3 ? 0.6 : 0.14, "sawtooth", 0.05, 0, i * 0.12, null, false));
+      noise(1.6, 0.1, 1000, 0.3);
+    },
     finish: () => {
       [523, 659, 784, 1046].forEach((f, i) => beep(f, 0.18, "triangle", 0.12, 0, i * 0.11, null, false));
       [523, 659, 784, 1046].forEach((f) => beep(f, 0.9, "sawtooth", 0.035, 0, 0.44, null, false));
       noise(1.2, 0.2, 6000, 0.44, null, "highpass");
     },
   };
+
+  // ---------- 선수 소개 ----------
+  const TAGS = [
+    "오늘 컨디션 최상 🔥", "바나나 투척 장인 🍌", "부스터 의존도 100% 🚀", "출발 반응속도 0.1초 ⚡",
+    "역전의 아이콘 🌀", "어제 야식 먹고 옴 🍗", "방패 수집가 🛡️", "졸음 주의보 발령 💤",
+    "우승 후보 0순위 👑", "오늘의 다크호스 🐎", "꼴등 탈출을 다짐 🐢", "거대화 꿈나무 🍄",
+  ];
+  const INTRO_TITLE = 1.4; // 타이틀 카드 시간
+  const INTRO_PER = 1.35; // 선수 1명당 시간
 
   // ---------- 배경음 (상황에 따라 레이어가 쌓이는 음악) ----------
   // layer 0: 킥/스네어/하이햇/베이스, 1: 라스트 스퍼트(16비트 하이햇 + 아르페지오), 2: 접전(크래시 추가)
@@ -351,6 +370,7 @@
   function laneY(i) { return SKY_H + i * LANE_H + LANE_H / 2; }
 
   function makeRace() {
+    const tags = TAGS.slice().sort(() => Math.random() - 0.5);
     const runners = members.map((m, i) => {
       const img = new Image();
       img.src = m.img;
@@ -368,6 +388,7 @@
         paceTimer: 0,
         phase: Math.random() * 10,
         boostT: 0, slowT: 0, stunT: 0, giantT: 0,
+        tag: tags[i % tags.length],
         squash: 0, // 찌그러짐 연출 세기 (0이면 원래 모양)
         squashT: 1,
         rank: i,
@@ -395,6 +416,9 @@
       bolts: [],
       flash: 0,
       t: 0,
+      intro: { i: -1, t: 0 }, // i = -1: 타이틀 카드, 0..n-1: 선수 소개 중
+      focus: { x: 0, y: 0, z: 1 }, // 방송 카메라 줌 위치
+      letterbox: 0,
       countdown: 3.5,
       lastCount: 4,
       timeScale: 1,
@@ -639,6 +663,7 @@
     });
     R.parts = R.parts.filter((p) => p.life < p.max);
     // 라스트 스퍼트/접전일 때 살짝 줌인
+    R.letterbox += ((R.intro ? 1 : 0) - R.letterbox) * Math.min(1, dt * 5);
     const zt = R.timeScale < 0.7 ? 1.08 : R.spurt && !R.done ? 1.03 : 1;
     R.zoom += (zt - R.zoom) * Math.min(1, dt * 3);
   }
@@ -646,6 +671,21 @@
   function update(dt) {
     const R = race;
     updateJuice(dt);
+    if (R.intro) {
+      const I = R.intro;
+      if (I.i === -1 && I.t === 0) sfx.title();
+      I.t += dt;
+      if (I.t >= (I.i < 0 ? INTRO_TITLE : INTRO_PER)) {
+        I.i++;
+        I.t = 0;
+        if (I.i >= R.runners.length) { R.intro = null; return; }
+        const r = R.runners[I.i];
+        sfx.intro();
+        squash(r, 0.45);
+        burst(r.x, laneY(r.lane) - 30, 14, [r.color, "#fff", "#ffcc33"], { speed: 200, gravity: 0, life: 0.6 });
+      }
+      return;
+    }
     if (R.countdown > 0) {
       R.countdown -= dt;
       const c = Math.ceil(R.countdown);
@@ -1208,8 +1248,97 @@
     ctx.restore();
   }
 
+  // 육상 중계 스타일 화면: 레터박스, LIVE 표시, 선수 자막 바
+  function drawIntro() {
+    const R = race;
+    const lb = R.letterbox;
+    if (lb < 0.01) return;
+    // 소개 중인 선수에게만 조명, 나머지는 어둡게
+    if (R.intro && R.intro.i >= 0) {
+      const F = R.focus, r = R.runners[R.intro.i];
+      const px = (sx(r.x) - F.cx) * F.z + W / 2;
+      const py = (laneY(r.lane) - 25 - F.cy) * F.z + H / 2;
+      const on = Math.min(1, R.intro.t / 0.25);
+      const g = ctx.createRadialGradient(px, py, 45 * F.z, px, py, 110 * F.z);
+      g.addColorStop(0, "rgba(0,0,0,0)");
+      g.addColorStop(1, `rgba(0,0,0,${0.62 * on})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+    const bh = 42 * lb;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, W, bh);
+    ctx.fillRect(0, H - bh, W, bh);
+    if (!R.intro) return;
+
+    // LIVE 배지
+    const blink = Math.sin(performance.now() / 250) > 0;
+    ctx.fillStyle = "#e5202e";
+    roundRect(12, 10, 64, 22, 4);
+    ctx.fill();
+    ctx.fillStyle = blink ? "#fff" : "rgba(255,255,255,0.35)";
+    ctx.beginPath();
+    ctx.arc(25, 21, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 13px sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("LIVE", 34, 22);
+    ctx.font = "bold 12px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillText("화면을 누르면 건너뛰기 ▶▶", W - 12, H - 20);
+
+    const I = R.intro;
+    if (I.i < 0) {
+      const sc = easeOutBack(Math.min(1, I.t / 0.35));
+      const a = 1 - Math.max(0, I.t - (INTRO_TITLE - 0.25)) / 0.25;
+      bigText("🏟️ 롤링 레이스 결승", W / 2, H / 2 - 24, Math.min(54, W / 11), "#ffcc33", sc, a);
+      bigText("선수 소개", W / 2, H / 2 + 34, Math.min(34, W / 14), "#fff", sc, a);
+      return;
+    }
+
+    // 자막 바 (왼쪽에서 미끄러져 들어옴)
+    const r = R.runners[I.i];
+    const inK = easeOutBack(Math.min(1, I.t / 0.35));
+    const outK = Math.max(0, I.t - (INTRO_PER - 0.2)) / 0.2;
+    const bw = Math.min(W - 24, 460);
+    const x0 = 12 - (1 - inK) * (bw + 40) - outK * (bw + 40);
+    const y0 = H - bh - 92;
+    ctx.save();
+    ctx.globalAlpha = 1 - outK;
+    // 레인 번호 박스
+    ctx.fillStyle = r.color;
+    roundRect(x0, y0, 76, 76, 8);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("LANE", x0 + 38, y0 + 18);
+    ctx.font = "900 38px sans-serif";
+    ctx.fillText(String(r.lane + 1), x0 + 38, y0 + 48);
+    // 이름 + 한 줄 소개
+    ctx.fillStyle = "rgba(10,14,30,0.88)";
+    roundRect(x0 + 82, y0, bw - 82, 76, 8);
+    ctx.fill();
+    ctx.fillStyle = r.color;
+    ctx.fillRect(x0 + 82, y0 + 70, (bw - 82) * Math.min(1, I.t / 0.6), 6);
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 30px sans-serif";
+    ctx.fillText(r.name, x0 + 98, y0 + 26);
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.fillText(r.tag, x0 + 98, y0 + 54);
+    ctx.restore();
+  }
+
   function drawOverlayText() {
     const R = race;
+    drawIntro();
+    if (R.intro) return;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     if (R.countdown > 0) {
@@ -1266,7 +1395,39 @@
     update(dt);
     updateCamera(dt);
 
+    // 방송 카메라: 소개 중인 선수에게 줌인, 끝나면 전체 화면으로 복귀
+    {
+      const F = race.focus;
+      let tx = W / 2, ty = H / 2, tz = 1;
+      if (race.intro && race.intro.i >= 0) {
+        const r = race.runners[race.intro.i];
+        tz = 2.4;
+        tx = sx(r.x) + 30;
+        ty = laneY(r.lane) - 25;
+      }
+      const k = Math.min(1, dt * 6);
+      F.z += (tz - F.z) * k;
+      F.x += (tx - F.x) * k;
+      F.y += (ty - F.y) * k;
+    }
+
     ctx.save();
+    {
+      const F = race.focus;
+      F.cx = W / 2;
+      F.cy = H / 2;
+      if (F.z > 1.001) {
+        // 화면 밖이 보이지 않게 초점 위치를 제한
+        const hw = W / 2 / F.z, hh = H / 2 / F.z;
+        const fx = Math.min(W - hw, Math.max(hw, F.x));
+        const fy = Math.min(H - hh, Math.max(hh, F.y));
+        F.cx = fx;
+        F.cy = fy;
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(F.z, F.z);
+        ctx.translate(-fx, -fy);
+      }
+    }
     // 흔들림 = trauma² (작은 사건은 살짝, 큰 사건은 확), 매 프레임 랜덤이 아닌 사인파로 부드럽게
     const R = race;
     const sh = R.trauma * R.trauma * SHAKE_MUL;
@@ -1293,6 +1454,10 @@
 
     if (!race.done) rafId = requestAnimationFrame(frame);
   }
+
+  canvas.addEventListener("click", () => {
+    if (race && race.intro) race.intro = null;
+  });
 
   function startRace() {
     if (members.length < 2) return;
