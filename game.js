@@ -8,9 +8,10 @@
     { name: "장윤성", img: "assets/yunseong.png" },
     { name: "장준혁", img: "assets/junhyuk.png" },
     { name: "이정웅", img: "assets/jeongwoong.png" },
+    { name: "이성복", img: "assets/seongbok.png" },
   ];
   const COLORS = ["#ff5a5f", "#3db2ff", "#ffcc33", "#5ee07a", "#c77dff", "#ff8a3d", "#2ee6d6", "#ff7ac6"];
-  const STORE_KEY = "rolling.members.v2";
+  const STORE_KEY = "rolling.members.v3";
 
   let members = loadMembers();
   let mode = "first";
