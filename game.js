@@ -5,9 +5,12 @@
   const DEFAULT_MEMBERS = [
     { name: "김보석", img: "assets/boseok.png" },
     { name: "백민우", img: "assets/minwoo.png" },
+    { name: "장윤성", img: "assets/yunseong.png" },
+    { name: "장준혁", img: "assets/junhyuk.png" },
+    { name: "이정웅", img: "assets/jeongwoong.png" },
   ];
   const COLORS = ["#ff5a5f", "#3db2ff", "#ffcc33", "#5ee07a", "#c77dff", "#ff8a3d", "#2ee6d6", "#ff7ac6"];
-  const STORE_KEY = "rolling.members.v1";
+  const STORE_KEY = "rolling.members.v2";
 
   let members = loadMembers();
   let mode = "first";
